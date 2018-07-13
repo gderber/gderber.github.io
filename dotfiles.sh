@@ -48,17 +48,6 @@ function idghuser () {
 #
 #
 # ======================================================================
-function getlocaldomain () {
-    local DN
-    DN=$(python -c 'import socket; print(socket.getfqdn())'|cut -d. f2-)
-    ehco -ne ${DN}
-}
-
-# ======================================================================
-#
-#
-#
-# ======================================================================
 function download () {
     if [[ -d ${SRCFILEDIR} ]]; then
 	# Update
@@ -67,11 +56,11 @@ function download () {
     else
 	mkdir -p ${SRCFILEDIR}
 	cd ${SRCFILEDIR}
-	local DN=$(getlocaldomain)
+	local DN=$(dnsdomainname)
 	local GITFQDN=${GITHOST}.${DN}
-	if [[ $(ping -c1 git &>/dev/null) ]]; then
+	if $(ping -c1 git &>/dev/null) ; then
 	    ${CLONE} "git@git:dotfiles.git"
-	elif [[ $(ping -c1 ${GITFQDN} &>/dev/null) ]]; then
+	elif $(ping -c1 ${GITFQDN} &>/dev/null) ; then
 	    ${CLONE} "git@{GITFQDN}:dotfiles.git"
 	else
 	    GHUID=${GHUID:-gderber}
