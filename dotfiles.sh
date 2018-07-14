@@ -43,31 +43,41 @@ function idghuser () {
     [[ -n ${GHUSER} ]] && echo "GHUID=${GHUSER}" > "${DOTFILERC}"
 }
 
+function updateremotes () {
+    cd ${DOTFILEDIR}
+    local DN=$(dnsdomainname)
+    local GITFQDN=${GITHOST}.${DN}
+    unset ORIGIN
+    
+    if $(ping -c1 git &>/dev/null) ; then
+	ORIGIN=git
+    elif $(ping -c1 ${GITFQDN} &>/dev/null) ; then
+	ORIGIN=${GITFQDN}
+    fi
+    if [[ -n ${ORIGIN} ]]; then
+	git remote rename origin github
+	git remote add origin "git@${ORIGIN}:dotfiles.git"
+    fi
+}
+
 # ======================================================================
 #
 #
 #
 # ======================================================================
 function download () {
-    if [[ -d ${SRCFILEDIR} ]]; then
+    if [[ -d ${DOTFILEDIR} ]]; then
 	# Update
 	cd ${DOTFILEDIR}
 	git pull origin master
     else
 	mkdir -p ${SRCFILEDIR}
 	cd ${SRCFILEDIR}
-	local DN=$(dnsdomainname)
-	local GITFQDN=${GITHOST}.${DN}
-	if $(ping -c1 git &>/dev/null) ; then
-	    ${CLONE} "git@git:dotfiles.git"
-	elif $(ping -c1 ${GITFQDN} &>/dev/null) ; then
-	    ${CLONE} "git@{GITFQDN}:dotfiles.git"
-	else
-	    GHUID=${GHUID:-gderber}
-	    ${CLONE} "https://github.com/${GHUID}/dotfiles.git"
-	fi
+	GHUID=${GHUID:-gderber}
+	${CLONE} "https://github.com/${GHUID}/dotfiles.git"
+	updateremotes
     fi
-    
+
 }
 
 # ======================================================================
