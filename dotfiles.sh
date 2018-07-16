@@ -48,7 +48,9 @@ idghuser () {
     else
 	GHUSER=$1
     fi
-    [[ -n ${GHUSER} ]] && echo "GHUID=${GHUSER}" > "${DOTFILERC}"
+    if [ -n ${GHUSER} ]; then
+	echo "GHUID=${GHUSER}" > "${DOTFILERC}"
+    fi
 }
 
 # ======================================================================
@@ -119,13 +121,13 @@ selfinstall () {
 
     echo "INSTDIR: ${INSTDIR}"
     echo ${PWD}
-    if [ -f ${PWD}/dotfiles.sh ]; then
-	[ "${INSTDIR}" != "${PWD}" ] &&
-	    if [ ! -f "${INSTDIR}/dotfiles.sh" ] || [ "${TODAY}" != "${LASTUPDATE}" ]; then
-		mkdir -pv ${INSTDIR} &&
-		    ${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
-		    chmod 755 ${INSTDIR}/dotfiles.sh
-	    fi
+
+    if [ "${INSTDIR}" != "${PWD}" ]; then
+	if [ ! -f "${INSTDIR}/dotfiles.sh" ] || [ "${TODAY}" != "${LASTUPDATE}" ]; then
+	    mkdir -pv ${INSTDIR} &&
+		${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
+		chmod 755 ${INSTDIR}/dotfiles.sh
+	fi	
     fi
 }
 
@@ -184,8 +186,9 @@ fi
     
 download &&
     install &&
-    selfinstall ${PREFIX} &&
-    
+    if [ -f ${PWD}/dotfiles.sh ]; then
+	selfinstall ${PREFIX} &&
+    fi
     if [ -f ${DOTFILESRC} ]; then
 	if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
 	    echo "sed"
