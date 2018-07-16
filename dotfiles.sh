@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ======================================================================
 #
 # Dotfile.sh installer
@@ -21,11 +21,19 @@ CLONE="${GIT} clone"
 # function help
 #
 # ======================================================================
-function __help () {
+dfhelp() {
     cat << HELP
 dotfiles.sh
 
-...
+Installs / updates dotfiles from git repo automatically
+
+Switch
+--prefix	Sets install prefix (Defaults to "/usr/local/" or "/home/\${user}/"
+		Depending on if executing user has sudo priveledges.
+--ghuser [name] Sets github's user name to $[name]
+--reset	 	Resets all previously set optionss
+--h|--help	Prints this help
+
 HELP
 }
 
@@ -34,8 +42,8 @@ HELP
 # function idghuser
 #
 # ======================================================================
-function idghuser () {
-    if [[ -z $1 ]]; then
+idghuser () {
+    if [ -z $1 ]; then
 	read -p "What is your github username? (Leave blank if you do not have one)" GHUSER
     else
 	GHUSER=$1
@@ -43,18 +51,23 @@ function idghuser () {
     [[ -n ${GHUSER} ]] && echo "GHUID=${GHUSER}" > "${DOTFILERC}"
 }
 
-function updateremotes () {
+# ======================================================================
+#
+# function updateremotes
+#
+# ======================================================================
+updateremotes () {
     cd ${DOTFILEDIR}
     local DN=$(dnsdomainname)
     local GITFQDN=${GITHOST}.${DN}
     unset ORIGIN
     
-    if $(ping -c1 git &>/dev/null) ; then
+    if $(ping -c1 git > /tmp/dotfilessh > /dev/null 2>&1) ; then
 	ORIGIN=git
-    elif $(ping -c1 ${GITFQDN} &>/dev/null) ; then
+    elif $(ping -c1 ${GITFQDN} > /tmp/dotfilessh > /dev/null 2>&1) ; then
 	ORIGIN=${GITFQDN}
     fi
-    if [[ -n ${ORIGIN} ]]; then
+    if [ -n ${ORIGIN} ]; then
 	git remote rename origin github
 	git remote add origin "git@${ORIGIN}:dotfiles.git"
     fi
@@ -62,11 +75,11 @@ function updateremotes () {
 
 # ======================================================================
 #
-#
+# function download
 #
 # ======================================================================
-function download () {
-    if [[ -d ${DOTFILEDIR} ]]; then
+download () {
+    if [ -d ${DOTFILEDIR} ]; then
 	# Update
 	cd ${DOTFILEDIR}
 	git pull origin master
@@ -85,16 +98,16 @@ function download () {
 #
 #
 # ======================================================================
-function selfinstall () {
+selfinstall () {
     BASEPREFIX=${1}
     BINDIR="bin"
     local PREFIX
     unset SUDO
-    if [[ $(sudo -v &>/dev/null) ]]; then
+    if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
 	PREFIX=${1:-"/usr/local/"}
 	SUDO="$(which sudo)"
-    elif [[ -n "${BASEPREFIX}" ]]; then
-	if [[ -d "${BASEPREFIX}" ]]; then
+    elif [ -n "${BASEPREFIX}" ]; then
+	if [ -d "${BASEPREFIX}" ]; then
 	    PREFIX="${BASEPREDIX}"
 	else
 	    PREFIX="${HOME}/${BASEPREFIX}"
@@ -106,12 +119,14 @@ function selfinstall () {
 
     echo "INSTDIR: ${INSTDIR}"
     echo ${PWD}
-    [[ "${INSTDIR}" != "${PWD}" ]] &&
-	if [[ ! -f "${INSTDIR}/dotfiles.sh" ]] || [[ "${TODAY}" != "${LASTUPDATE}" ]]; then
-	    mkdir -pv ${INSTDIR} &&
-		${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
-		chmod 755 ${INSTDIR}/dotfiles.sh
-	fi
+    if [ -f ${PWD}/dotfiles.sh ]; then
+	[ "${INSTDIR}" != "${PWD}" ] &&
+	    if [ ! -f "${INSTDIR}/dotfiles.sh" ] || [ "${TODAY}" != "${LASTUPDATE}" ]; then
+		mkdir -pv ${INSTDIR} &&
+		    ${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
+		    chmod 755 ${INSTDIR}/dotfiles.sh
+	    fi
+    fi
 }
 
 # ======================================================================
@@ -119,52 +134,60 @@ function selfinstall () {
 #
 #
 # ======================================================================
-function install () {
+install () {
     cd ${DOTFILEDIR} &&
 	make install
 }
     
-# ======================================================================
-#
-#
-#
-# ======================================================================
-function main () {
-
-    while [[ -n $1 ]]
-    do
-	case $1 in
-	    --prefix)
+while :; do
+    case $1 in
+	--prefix)
+	    if [ -n $2 ]; then
 		PREFIX=$2
-		shift 2
-		;;
-	    --ghuser)
-		GHUSER=$2
-		shift 2
-		;;
-	    --reset)
-		RESET=true
-		shift 1
-		;;
-	    *)
-		__help
+		shift
+	    else
+		printf 'ERROR: "--prefix" requires a non-empty option argument.\n' >&2
 		exit 1
-		;;
-	esac
-    done
+	    fi
+	    ;;
+	--ghuser)
+	    if [ -n $2 ]; then
+		GHUSER=$2
+	        shift
+	    else
+		printf 'ERROR: "--file" requires a non-empty option argument.\n' >&2
+		exit 1
+	    fi
+	    ;;
+	--reset)
+	    RESET=true
+	    ;;
+	-h|-\?|--help)
+	    dfhelp
+	    exit
+	    ;;
+	-?*)
+	    dfhelp
+	    exit 1
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+done
 
-    if [[ "${RESET}" != "true " ]] && [[ -f ${DOTFILESRC} ]]; then
-	source ${DOTFILESRC}
-    else
-	idghuser
-    fi
+if [ "${RESET}" != "true " ] && [ -f ${DOTFILESRC} ]; then
+    . ${DOTFILESRC}
+else
+    idghuser
+fi
     
-    download &&
-	install &&
+download &&
+    install &&
     selfinstall ${PREFIX} &&
-
-    if [[ -f ${DOTFILESRC} ]]; then
-	if [[ $(grep -q LASTUPDATE ${DOTFILESRC}) ]]; then
+    
+    if [ -f ${DOTFILESRC} ]; then
+	if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
 	    echo "sed"
 	else
 	    echo "LASTUPDATE=$(date +%F)" >> "${DOTFILESRC}"
@@ -172,6 +195,3 @@ function main () {
     else
 	echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
     fi
-}
-
-main $@
