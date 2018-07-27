@@ -6,14 +6,14 @@
 #    G. S. Derber
 #
 # ======================================================================
-SRCFILEDIR=${HOME}/src
+SRCFILEDIR=${HOME}/.src
 DOTFILEDIR=${SRCFILEDIR}/dotfiles
-DOTFILESSH=$(which dotfiles.sh)
+DOTFILESSH=$(command -v dotfiles.sh)
 DOTFILESRC=${HOME}/.dotfilesrc
 DOTFILESSHDIR=${PWD}
 TODAY=$(date +%F)
 GITHOST=git
-GIT=$(which git)
+GIT=$(command -v git)
 CLONE="${GIT} clone"
 
 # ======================================================================
@@ -122,12 +122,14 @@ selfinstall () {
     echo "INSTDIR: ${INSTDIR}"
     echo ${PWD}
 
-    if [ "${INSTDIR}" != "${PWD}" ]; then
-	if [ ! -f "${INSTDIR}/dotfiles.sh" ] || [ "${TODAY}" != "${LASTUPDATE}" ]; then
-	    mkdir -pv ${INSTDIR} &&
-		${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
-		chmod 755 ${INSTDIR}/dotfiles.sh
-	fi	
+    if [ ! -f ${PWD}/dotfiles.sh ]; then
+	if [ "${INSTDIR}" != "${PWD}" ]; then
+	    if [ ! -f "${INSTDIR}/dotfiles.sh" ] || [ "${TODAY}" != "${LASTUPDATE}" ]; then
+		mkdir -pv ${INSTDIR} &&
+		    ${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
+		    chmod 755 ${INSTDIR}/dotfiles.sh
+	    fi	
+	fi
     fi
 }
 
@@ -188,10 +190,11 @@ download &&
     install &&
     if [ -f ${PWD}/dotfiles.sh ]; then
 	selfinstall ${PREFIX} &&
+	    echo "..."
     fi
     if [ -f ${DOTFILESRC} ]; then
 	if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
-	    echo "sed"
+	    sed -i 's/LASTUPDATE=.*/LASTUPDATE='$(date +%F)'/g' "${DOTFILESRC}"
 	else
 	    echo "LASTUPDATE=$(date +%F)" >> "${DOTFILESRC}"
 	fi
