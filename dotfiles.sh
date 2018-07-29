@@ -49,7 +49,7 @@ idghuser () {
 	GHUSER=$1
     fi
     if [ -n ${GHUSER} ]; then
-	echo "GHUID=${GHUSER}" > "${DOTFILERC}"
+	echo "GHUID=${GHUSER}" > "${DOTFILESRC}"
     fi
 }
 
