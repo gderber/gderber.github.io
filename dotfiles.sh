@@ -6,7 +6,7 @@
 #    G. S. Derber
 #
 # ======================================================================
-SRCFILEDIR=${HOME}/.src
+SRCFILEDIR=${HOME}/.local/src
 DOTFILEDIR=${SRCFILEDIR}/dotfiles
 DOTFILESSH=$(command -v dotfiles.sh)
 DOTFILESRC=${HOME}/.dotfilesrc
