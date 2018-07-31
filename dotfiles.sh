@@ -63,14 +63,14 @@ updateremotes () {
     local DN=$(dnsdomainname)
     local GITFQDN=${GITHOST}.${DN}
     unset ORIGIN
+    local ORIGIN
     
-    if $(ping -c1 git > /tmp/dotfilessh > /dev/null 2>&1) ; then
+    if ping -c1 git > /tmp/dotfilessh > /dev/null 2>&1 ; then
 	ORIGIN=git
-    elif $(ping -c1 ${GITFQDN} > /tmp/dotfilessh > /dev/null 2>&1) ; then
+    elif ping -c1 ${GITFQDN} > /tmp/dotfilessh > /dev/null 2>&1 ; then
 	ORIGIN=${GITFQDN}
     fi
-    echo ${ORIGIN}
-    if [ "${ORIGIN}" = "git" ] || [ "${ORIGIN}" = "${GITFQDN}" ] ; then
+    if [ -n "${ORIGIN}" ] ; then
 	git remote rename origin github
 	git remote add origin "git@${ORIGIN}:dotfiles.git"
     fi
