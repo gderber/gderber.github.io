@@ -65,9 +65,9 @@ updateremotes () {
     unset ORIGIN
     local ORIGIN
     
-    if ping -c1 git > /tmp/dotfilessh > /dev/null 2>&1 ; then
+    if ping -c1 git > /dev/null; then
 	ORIGIN=git
-    elif ping -c1 ${GITFQDN} > /tmp/dotfilessh > /dev/null 2>&1 ; then
+    elif ping -c1 ${GITFQDN} > /dev/null; then
 	ORIGIN=${GITFQDN}
     fi
     if [ -n "${ORIGIN}" ] ; then
