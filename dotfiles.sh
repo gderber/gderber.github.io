@@ -69,7 +69,8 @@ updateremotes () {
     elif $(ping -c1 ${GITFQDN} > /tmp/dotfilessh > /dev/null 2>&1) ; then
 	ORIGIN=${GITFQDN}
     fi
-    if [ -n ${ORIGIN} ]; then
+    echo ${ORIGIN}
+    if [ "${ORIGIN}" = "git" ] || [ "${ORIGIN}" = "${GITFQDN}" ] ; then
 	git remote rename origin github
 	git remote add origin "git@${ORIGIN}:dotfiles.git"
     fi
