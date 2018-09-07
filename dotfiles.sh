@@ -1,11 +1,55 @@
 #!/bin/sh
-# ======================================================================
 #
-# Dotfile.sh installer
-#
-#    G. S. Derber
-#
-# ======================================================================
+# dotfiles.sh ---
+# 
+# Filename: dotfiles.sh
+# Description: 
+# Author: Geoff S Derber
+# Maintainer: 
+# Created: Fri Sep  7 15:58:44 2018 (-0400)
+# Version: 
+# Package-Requires: ()
+# Last-Updated: Fri Sep  7 16:05:44 2018 (-0400)
+#           By: Geoff S Derber
+#     Update #: 1
+# URL: 
+# Doc URL: 
+# Keywords: 
+# Compatibility: 
+# 
+# 
+
+# Commentary: 
+# 
+# 
+# 
+# 
+
+# Change Log:
+# 
+# 
+# 
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
+# 
+# 
+
+# Code:
+
+
+
+
 SRCFILEDIR=${HOME}/.local/src
 DOTFILEDIR=${SRCFILEDIR}/dotfiles
 DOTFILESSH=$(command -v dotfiles.sh)
@@ -83,15 +127,19 @@ updateremotes () {
 # ======================================================================
 download () {
     if [ -d ${DOTFILEDIR} ]; then
-	# Update
-	cd ${DOTFILEDIR}
-	git pull origin master
+        # Update
+        cd ${DOTFILEDIR}
+        if ping -c1 git &>/dev/null ; then
+            git pull origin master
+        else
+            git pull github master
+        fi
     else
-	mkdir -p ${SRCFILEDIR}
-	cd ${SRCFILEDIR}
-	GHUID=${GHUID:-gderber}
-	${CLONE} "https://github.com/${GHUID}/dotfiles.git"
-	updateremotes
+        mkdir -p ${SRCFILEDIR}
+        cd ${SRCFILEDIR}
+        GHUID=${GHUID:-gderber}
+        ${CLONE} "https://github.com/${GHUID}/dotfiles.git"
+        updateremotes
     fi
 
 }
@@ -107,16 +155,16 @@ selfinstall () {
     local PREFIX
     unset SUDO
     if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
-	PREFIX=${1:-"/usr/local/"}
-	SUDO="$(which sudo)"
+        PREFIX=${1:-"/usr/local/"}
+        SUDO="$(which sudo)"
     elif [ -n "${BASEPREFIX}" ]; then
-	if [ -d "${BASEPREFIX}" ]; then
-	    PREFIX="${BASEPREDIX}"
-	else
-	    PREFIX="${HOME}/${BASEPREFIX}"
-	fi
+        if [ -d "${BASEPREFIX}" ]; then
+            PREFIX="${BASEPREDIX}"
+        else
+            PREFIX="${HOME}/${BASEPREFIX}"
+        fi
     else
-	PREFIX="${HOME}/.local"
+        PREFIX="${HOME}/.local"
     fi
     INSTDIR="${PREFIX}/${BINDIR}"
 
@@ -202,3 +250,6 @@ download &&
     else
 	echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
     fi
+
+# 
+# dotfiles.sh ends here
