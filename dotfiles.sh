@@ -1,11 +1,56 @@
 #!/bin/sh
 # ======================================================================
 #
-# Dotfile.sh installer
-#
-#    G. S. Derber
-#
+# dotfiles.sh ---
+# 
+# Filename: dotfiles.sh
+# Description: 
+# Author: Geoff S Derber
+# Maintainer: 
+# Created: Fri Sep  7 15:58:44 2018 (-0400)
+# Version: 
+# Package-Requires: ()
+# Last-Updated: Fri Dec  7 21:39:04 2018 (-0500)
+#           By: Geoff S Derber
+#     Update #: 8
+# URL: 
+# Doc URL: 
+# Keywords: 
+# Compatibility: 
+# 
+# 
+
+# Commentary: 
+# 
+# 
+# 
+# 
+
+# Change Log:
+# 
+# 
+# 
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
+# 
+# 
 # ======================================================================
+# Code:
+
+
+
+
 SRCFILEDIR=${HOME}/.local/src
 DOTFILEDIR=${SRCFILEDIR}/dotfiles
 DOTFILESSH=$(command -v dotfiles.sh)
@@ -65,12 +110,12 @@ checkdependencies () {
 # ======================================================================
 idghuser () {
     if [ -z $1 ]; then
-	read -p "What is your github username? (Leave blank if you do not have one)" GHUSER
+        read -p "What is your github username? (Leave blank if you do not have one)" GHUSER
     else
-	GHUSER=$1
+        GHUSER=$1
     fi
     if [ -n ${GHUSER} ]; then
-	echo "GHUID=${GHUSER}" > "${DOTFILESRC}"
+        echo "GHUID=${GHUSER}" > "${DOTFILESRC}"
     fi
 }
 
@@ -85,15 +130,15 @@ updateremotes () {
     local GITFQDN=${GITHOST}.${DN}
     unset ORIGIN
     local ORIGIN
-    
+
     if ping -c1 git > /dev/null; then
-	ORIGIN=git
+        ORIGIN=git
     elif ping -c1 ${GITFQDN} > /dev/null; then
-	ORIGIN=${GITFQDN}
+        ORIGIN=${GITFQDN}
     fi
     if [ -n "${ORIGIN}" ] ; then
-	git remote rename origin github
-	git remote add origin "git@${ORIGIN}:dotfiles.git"
+        git remote rename origin github
+        git remote add origin "git@${ORIGIN}:dotfiles.git"
     fi
 }
 
@@ -102,18 +147,24 @@ updateremotes () {
 #
 # function download
 #
+# Clone or Update the dotfiles repo
+#
 # ======================================================================
 download () {
     if [ -d ${DOTFILEDIR} ]; then
-	# Update
-	cd ${DOTFILEDIR}
-	git pull origin master
+        # Update
+        cd ${DOTFILEDIR}
+        if ping -c1 git > /dev/null ; then
+            git pull origin master
+        else
+            git pull github master
+        fi
     else
-	mkdir -p ${SRCFILEDIR}
-	cd ${SRCFILEDIR}
-	GHUID=${GHUID:-gderber}
-	${CLONE} "https://github.com/${GHUID}/dotfiles.git"
-	updateremotes
+        mkdir -p ${SRCFILEDIR}
+        cd ${SRCFILEDIR}
+        GHUID=${GHUID:-gderber}
+        ${CLONE} "https://github.com/${GHUID}/dotfiles.git"
+        updateremotes
     fi
 
 }
@@ -129,16 +180,16 @@ selfinstall () {
     local PREFIX
     unset SUDO
     if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
-	PREFIX=${1:-"/usr/local/"}
-	SUDO="$(which sudo)"
+        PREFIX=${1:-"/usr/local/"}
+        SUDO="$(which sudo)"
     elif [ -n "${BASEPREFIX}" ]; then
-	if [ -d "${BASEPREFIX}" ]; then
-	    PREFIX="${BASEPREDIX}"
-	else
-	    PREFIX="${HOME}/${BASEPREFIX}"
-	fi
+        if [ -d "${BASEPREFIX}" ]; then
+            PREFIX="${BASEPREDIX}"
+        else
+            PREFIX="${HOME}/${BASEPREFIX}"
+        fi
     else
-	PREFIX="${HOME}/.local"
+        PREFIX="${HOME}/.local"
     fi
     INSTDIR="${PREFIX}/${BINDIR}"
 
@@ -146,13 +197,14 @@ selfinstall () {
     echo ${PWD}
 
     if [ ! -f ${PWD}/dotfiles.sh ]; then
-	if [ "${INSTDIR}" != "${PWD}" ]; then
-	    if [ ! -f "${INSTDIR}/dotfiles.sh" ] || [ "${TODAY}" != "${LASTUPDATE}" ]; then
-		mkdir -pv ${INSTDIR} &&
-		    ${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
-		    chmod 755 ${INSTDIR}/dotfiles.sh
-	    fi	
-	fi
+        if [ "${INSTDIR}" != "${PWD}" ]; then
+            if [ ! -f "${INSTDIR}/dotfiles.sh" ] ||
+                   [ "${TODAY}" != "${LASTUPDATE}" ]; then
+                mkdir -pv ${INSTDIR} &&
+                    ${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
+                    chmod 755 ${INSTDIR}/dotfiles.sh
+            fi
+        fi
     fi
 }
 
@@ -228,38 +280,38 @@ setcrontab () {
 
 while :; do
     case $1 in
-	--prefix)
-	    if [ -n $2 ]; then
-		PREFIX=$2
-		shift
-	    else
-		printf 'ERROR: "--prefix" requires a non-empty option argument.\n' >&2
-		exit 1
-	    fi
-	    ;;
-	--ghuser)
-	    if [ -n $2 ]; then
-		GHUSER=$2
-	        shift
-	    else
-		printf 'ERROR: "--file" requires a non-empty option argument.\n' >&2
-		exit 1
-	    fi
-	    ;;
-	--reset)
-	    RESET=true
-	    ;;
-	-h|-\?|--help)
-	    dfhelp
-	    exit
-	    ;;
-	-?*)
-	    dfhelp
-	    exit 1
-	    ;;
-	*)
-	    break
-	    ;;
+        --prefix)
+            if [ -n $2 ]; then
+                PREFIX=$2
+                shift
+            else
+                printf 'ERROR: "--prefix" requires a non-empty option argument.\n' >&2
+                exit 1
+            fi
+            ;;
+        --ghuser)
+            if [ -n $2 ]; then
+                GHUSER=$2
+                shift
+            else
+                printf 'ERROR: "--file" requires a non-empty option argument.\n' >&2
+                exit 1
+            fi
+            ;;
+        --reset)
+            RESET=true
+            ;;
+        -h|-\?|--help)
+            dfhelp
+            exit
+            ;;
+        -?*)
+            dfhelp
+            exit 1
+            ;;
+        *)
+            break
+            ;;
     esac
 done
 
@@ -269,6 +321,7 @@ else
     idghuser
 fi
 
+<<<<<<< HEAD
 checkdependencies &&
 download &&
 dfinstall &&
@@ -276,6 +329,14 @@ genuserkeys &&
 initpass &&
 setcrontab
 
+=======
+download &&
+    install &&
+    if [ -f ${PWD}/dotfiles.sh ]; then
+        selfinstall ${PREFIX} &&
+            echo "..."
+    fi
+>>>>>>> 908abd3c73c61fbbc2d454818653c430d76ecb27
 if [ -f ${DOTFILESRC} ]; then
     if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
         sed -i 's/LASTUPDATE=.*/LASTUPDATE='$(date +%F)'/g' "${DOTFILESRC}"
@@ -285,3 +346,9 @@ if [ -f ${DOTFILESRC} ]; then
 else
     echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
 fi
+<<<<<<< HEAD
+=======
+
+#
+# dotfiles.sh ends here
+>>>>>>> 908abd3c73c61fbbc2d454818653c430d76ecb27
