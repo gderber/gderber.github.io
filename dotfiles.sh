@@ -2,25 +2,25 @@
 # ======================================================================
 #
 # dotfiles.sh ---
-# 
+#
 # Filename: dotfiles.sh
-# Description: 
+# Description:
 # Author: Geoff S Derber
-# Maintainer: 
+# Maintainer:
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
-# Version: 
+# Version:
 # Package-Requires: ()
-# Last-Updated: Fri Dec  7 21:39:04 2018 (-0500)
+# Last-Updated: Sat Dec  8 16:29:37 2018 (-0500)
 #           By: Geoff S Derber
-#     Update #: 8
-# URL: 
-# Doc URL: 
-# Keywords: 
-# Compatibility: 
-# 
-# 
+#     Update #: 31
+# URL:
+# Doc URL:
+# Keywords:
+# Compatibility:
+#
+#
 
-# Commentary: 
+# Commentary:
 # 
 # 
 # 
@@ -84,7 +84,9 @@ HELP
 
 # ======================================================================
 #
-# function idghuser
+# function checkdependencies
+#
+# ...
 #
 # ======================================================================
 checkdependencies () {
@@ -93,19 +95,25 @@ checkdependencies () {
     DEPENDS="${DEPENDS} emacs-nox"
     for APP in ${DEPENDS}
     do
-	if [ ! $(command -v ${APP}) ]; then
+        if [ ! $(command -v ${APP}) ]; then
             MISSING="${MISSING} ${APP}"
-	fi
+        fi
     done
 
     if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
-	apt install ${MISSING}
+        apt install ${MISSING}
+    else
+        echo "Missing Applications: ${MISSING}" &&
+            exit 1
     fi
 }
 
 # ======================================================================
 #
 # function idghuser
+#
+# Identifies github username
+#
 #
 # ======================================================================
 idghuser () {
@@ -215,8 +223,22 @@ selfinstall () {
 # ======================================================================
 dfinstall () {
     cd ${DOTFILEDIR} &&
-	git verify-commit $(git rev-parse HEAD) &&
-	make install
+        git verify-commit $(git rev-parse HEAD) &&
+        make install
+}
+
+# ======================================================================
+#
+# initpass
+#
+# 
+#
+# ======================================================================
+initpass () {
+    # Identify the key to use
+    # Really need a way to identify a specific key
+    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' | head -n 1) &&
+        pass init ${keyVal}
 }
 
 # ======================================================================
@@ -225,39 +247,58 @@ dfinstall () {
 #
 # ======================================================================
 genuserkeys () {
-    SSHKEYS="ed25519 rsa"
-    for key in ${SSHKEYS}
-    do
-        if [ ! -f ~/.ssh/id_${key} ]; then
-	    case $key in
-		ed25518)
-		    OPTS=""
-		    ;;
-		rsa)
-		    OPTS="-b 4096"
-		    ;;
-	    esac
-            ssh-keygen -t ${key} ${OPTS}
-        fi
-    done
+    DN=$(dnsdomainname)
 
+    # Generate GPG keys
     keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
         if [ ! -n $keyVal ]; then
-            gpg --full-generate-key --expert &&
+            gpg --full-generate-key \
+                --expert &&
                 keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
                 gpg --edit-key --expert $keyVal
         fi
+
+    if [ ! -f ${HOME}/.pgpkey ]; then
+        gpg --export ${keyal} > ${HOME}/.pgpkey
+    fi
+
+    if [ ! -f ${HOME}/.ssh/${USER}_gpg.pub ]; then
+       gpg --export-ssh-key --output ${HOME}/.ssh/${USER}_gpg.pub
+    fi
+
+    SSHKEYS="ed25519 rsa"
+    # Check if password-store is setup
+    if [ ! -d ${HOME}/.password-store ]; then
+        initpass &&
+        for key in ${SSHKEYS}
+        do
+            # Add passwords for ssh keys
+            pass insert ${USER}/ssh/${key}
+        done
+    fi
+
+    # Generate SSH Keys
+    # ed25519 is primary
+    # rsa is for applications/sites that don't support ed25519
+    for key in ${SSHKEYS}
+    do
+        # If the key doesn't exist, generate it
+        if [ ! -f ~/.ssh/id_${key} ]; then
+            case $key in
+                ed25518)
+                    OPTS=""
+                    ;;
+                rsa)
+                    OPTS="-b 4096"
+                    ;;
+            esac
+            ssh-keygen -t ${key} \
+                       -f ${HOME}/.ssh/id_${key} \
+                       ${OPTS}
+        fi
+    done
 }
 
-# ======================================================================
-#
-#
-#
-# ======================================================================
-initpass () {
-    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
-	pass init ${keyVal}
-}
 
 # ======================================================================
 #
