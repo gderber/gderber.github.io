@@ -42,6 +42,27 @@ HELP
 # function idghuser
 #
 # ======================================================================
+checkdependencies () {
+    echo "Checking for required programs"
+    DEPENDS="git make keychain"
+    DEPENDS="${DEPENDS} emacs-nox"
+    for APP in ${DEPENDS}
+    do
+	if [ ! $(command -v ${APP}) ]; then
+            MISSING="${MISSING} ${APP}"
+	fi
+    done
+
+    if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
+	apt install ${MISSING}
+    fi
+}
+
+# ======================================================================
+#
+# function idghuser
+#
+# ======================================================================
 idghuser () {
     if [ -z $1 ]; then
 	read -p "What is your github username? (Leave blank if you do not have one)" GHUSER
@@ -75,6 +96,7 @@ updateremotes () {
 	git remote add origin "git@${ORIGIN}:dotfiles.git"
     fi
 }
+
 
 # ======================================================================
 #
@@ -139,11 +161,71 @@ selfinstall () {
 #
 #
 # ======================================================================
-install () {
+dfinstall () {
     cd ${DOTFILEDIR} &&
+	git verify-commit $(git rev-parse HEAD) &&
 	make install
 }
-    
+
+# ======================================================================
+#
+# genuserkeys
+#
+# ======================================================================
+genuserkeys () {
+    SSHKEYS="ed25519 rsa"
+    for key in ${SSHKEYS}
+    do
+        if [ ! -f ~/.ssh/id_${key} ]; then
+	    case $key in
+		ed25518)
+		    OPTS=""
+		    ;;
+		rsa)
+		    OPTS="-b 4096"
+		    ;;
+	    esac
+            ssh-keygen -t ${key} ${OPTS}
+        fi
+    done
+
+    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+        if [ ! -n $keyVal ]; then
+            gpg --full-generate-key --expert &&
+                keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+                gpg --edit-key --expert $keyVal
+        fi
+}
+
+# ======================================================================
+#
+#
+#
+# ======================================================================
+initpass () {
+    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+	pass init ${keyVal}
+}
+
+# ======================================================================
+#
+#
+#
+# ======================================================================
+setcrontab () {
+    CRONCMD="$(command -v nightly)"
+
+    #Add to Crontab
+    CRONJOB="0 23 * * * ${CRONCMD}"
+    # Pipe contents of crontab to grep
+    # Grep removes cronjob if it exists
+    # Print crinjob
+    # Pipe alk of the above back to crontab
+    ( crontab -l | grep -v -F "${CRONCMD}" ; echo "${CRONJOB}" ) | crontab -
+
+
+}
+
 while :; do
     case $1 in
 	--prefix)
@@ -186,19 +268,20 @@ if [ "${RESET}" != "true " ] && [ -f ${DOTFILESRC} ]; then
 else
     idghuser
 fi
-    
+
+checkdependencies &&
 download &&
-    install &&
-    if [ -f ${PWD}/dotfiles.sh ]; then
-	selfinstall ${PREFIX} &&
-	    echo "..."
-    fi
-    if [ -f ${DOTFILESRC} ]; then
-	if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
-	    sed -i 's/LASTUPDATE=.*/LASTUPDATE='$(date +%F)'/g' "${DOTFILESRC}"
-	else
-	    echo "LASTUPDATE=$(date +%F)" >> "${DOTFILESRC}"
-	fi
+dfinstall &&
+genuserkeys &&
+initpass &&
+setcrontab
+
+if [ -f ${DOTFILESRC} ]; then
+    if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
+        sed -i 's/LASTUPDATE=.*/LASTUPDATE='$(date +%F)'/g' "${DOTFILESRC}"
     else
-	echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
+        echo "LASTUPDATE=$(date +%F)" >> "${DOTFILESRC}"
     fi
+else
+    echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
+fi
