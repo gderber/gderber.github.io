@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Dec  9 10:55:42 2018 (-0500)
+# Last-Updated: Sun Dec  9 12:05:05 2018 (-0500)
 #           By: Geoff S Derber
-#     Update #: 88
+#     Update #: 89
 # URL:
 # Doc URL:
 # Keywords:
@@ -322,8 +322,7 @@ genuserkeys () {
                     ;;
             esac
             ssh-keygen -t ${key} \
-                       -f ${HOME}/.ssh/id_${key} \
-                       ${OPTS}
+                       -f ${HOME}/.ssh/id_${key} ${OPTS}
         fi
     done
 }
