@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Dec  9 12:05:05 2018 (-0500)
+# Last-Updated: Sun Dec  9 12:09:26 2018 (-0500)
 #           By: Geoff S Derber
-#     Update #: 89
+#     Update #: 90
 # URL:
 # Doc URL:
 # Keywords:
@@ -92,7 +92,7 @@ HELP
 checkdependencies () {
     echo "Checking for required programs"
     DEPENDS="git make keychain pass"
-    DEPENDS="${DEPENDS} emacs-nox"
+    #DEPENDS="${DEPENDS} emacs-nox"
     MISSING=""
     for APP in ${DEPENDS}
     do
