@@ -8,11 +8,11 @@
 # Author: Geoff S Derber
 # Maintainer:
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
-# Version:
-# Package-Requires: ()
-# Last-Updated: Sat Dec  8 16:29:37 2018 (-0500)
+# Version: 0.1
+# Package-Requires: (git make keychain pass)
+# Last-Updated: Sun Dec  9 10:55:42 2018 (-0500)
 #           By: Geoff S Derber
-#     Update #: 31
+#     Update #: 88
 # URL:
 # Doc URL:
 # Keywords:
@@ -91,8 +91,9 @@ HELP
 # ======================================================================
 checkdependencies () {
     echo "Checking for required programs"
-    DEPENDS="git make keychain"
+    DEPENDS="git make keychain pass"
     DEPENDS="${DEPENDS} emacs-nox"
+    MISSING=""
     for APP in ${DEPENDS}
     do
         if [ ! $(command -v ${APP}) ]; then
@@ -100,12 +101,17 @@ checkdependencies () {
         fi
     done
 
-    if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
-        apt install ${MISSING}
-    else
-        echo "Missing Applications: ${MISSING}" &&
-            exit 1
+    missingLength=${#MISSING}
+    if [ ${missingLength} -gt 0 ]; then
+        if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
+            apt install ${MISSING}
+        else
+            echo "Missing Applications: ${MISSING}" &&
+                exit 1
+        fi
     fi
+
+    echo "Check complete"
 }
 
 # ======================================================================
@@ -171,6 +177,7 @@ download () {
         mkdir -p ${SRCFILEDIR}
         cd ${SRCFILEDIR}
         GHUID=${GHUID:-gderber}
+        
         ${CLONE} "https://github.com/${GHUID}/dotfiles.git"
         updateremotes
     fi
@@ -189,7 +196,7 @@ selfinstall () {
     unset SUDO
     if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
         PREFIX=${1:-"/usr/local/"}
-        SUDO="$(which sudo)"
+        SUDO="$(command -v sudo)"
     elif [ -n "${BASEPREFIX}" ]; then
         if [ -d "${BASEPREFIX}" ]; then
             PREFIX="${BASEPREDIX}"
@@ -237,7 +244,10 @@ dfinstall () {
 initpass () {
     # Identify the key to use
     # Really need a way to identify a specific key
-    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' | head -n 1) &&
+    keyVal=$(gpg -K |
+                 awk '/sec/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 head -n 1) &&
         pass init ${keyVal}
 }
 
@@ -247,10 +257,11 @@ initpass () {
 #
 # ======================================================================
 genuserkeys () {
-    DN=$(dnsdomainname)
-
     # Generate GPG keys
-    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+    keyVal=$(gpg -K |
+                 awk '/sec/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 head -n 1) &&
         if [ ! -n $keyVal ]; then
             gpg --full-generate-key \
                 --expert &&
@@ -258,12 +269,30 @@ genuserkeys () {
                 gpg --edit-key --expert $keyVal
         fi
 
+    keyVal=$(gpg -K |
+                 awk '/sec/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 head -n 1)
     if [ ! -f ${HOME}/.pgpkey ]; then
-        gpg --export ${keyal} > ${HOME}/.pgpkey
+        gpg \
+            --armor \
+            --export ${keyal} > ${HOME}/.pgpkey
     fi
 
-    if [ ! -f ${HOME}/.ssh/${USER}_gpg.pub ]; then
-       gpg --export-ssh-key --output ${HOME}/.ssh/${USER}_gpg.pub
+    # Eport Authentication key
+    keyVal=$(gpg -K |
+                 awk '/\[A\]/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 head -n 1)
+
+    user=$(echo ${HOME}| cut -d/ -f4)
+    echo $user
+    if [ ! -f ${HOME}/.ssh/${user}_gpg.pub ]; then
+        gpg --armor \
+            --export-ssh-key \
+            --output ${HOME}/.ssh/${user}_gpg.pub \
+            ${keyVal}
+
     fi
 
     SSHKEYS="ed25519 rsa"
@@ -314,7 +343,9 @@ setcrontab () {
     # Grep removes cronjob if it exists
     # Print crinjob
     # Pipe alk of the above back to crontab
-    ( crontab -l | grep -v -F "${CRONCMD}" ; echo "${CRONJOB}" ) | crontab -
+    ( crontab -l |
+          grep -v -F "${CRONCMD}" ; echo "${CRONJOB}" ) |
+        crontab -
 
 
 }
@@ -362,7 +393,6 @@ else
     idghuser
 fi
 
-<<<<<<< HEAD
 checkdependencies &&
 download &&
 dfinstall &&
@@ -370,14 +400,6 @@ genuserkeys &&
 initpass &&
 setcrontab
 
-=======
-download &&
-    install &&
-    if [ -f ${PWD}/dotfiles.sh ]; then
-        selfinstall ${PREFIX} &&
-            echo "..."
-    fi
->>>>>>> 908abd3c73c61fbbc2d454818653c430d76ecb27
 if [ -f ${DOTFILESRC} ]; then
     if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
         sed -i 's/LASTUPDATE=.*/LASTUPDATE='$(date +%F)'/g' "${DOTFILESRC}"
@@ -387,9 +409,6 @@ if [ -f ${DOTFILESRC} ]; then
 else
     echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
 fi
-<<<<<<< HEAD
-=======
 
 #
 # dotfiles.sh ends here
->>>>>>> 908abd3c73c61fbbc2d454818653c430d76ecb27
