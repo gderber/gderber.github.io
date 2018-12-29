@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Dec  9 12:09:26 2018 (-0500)
+# Last-Updated: Sat Dec 29 16:40:56 2018 (-0500)
 #           By: Geoff S Derber
-#     Update #: 90
+#     Update #: 96
 # URL:
 # Doc URL:
 # Keywords:
@@ -177,7 +177,6 @@ download () {
         mkdir -p ${SRCFILEDIR}
         cd ${SRCFILEDIR}
         GHUID=${GHUID:-gderber}
-        
         ${CLONE} "https://github.com/${GHUID}/dotfiles.git"
         updateremotes
     fi
@@ -241,15 +240,29 @@ dfinstall () {
 # 
 #
 # ======================================================================
-initpass () {
-    # Identify the key to use
-    # Really need a way to identify a specific key
+getgpgkey () {
     keyVal=$(gpg -K |
                  awk '/sec/{if (length($2) > 0) print $2}' |
                  sed 's|.*/0x||' |
                  head -n 1) &&
+        echo "$keyVal"
+}
+
+# ======================================================================
+#
+# initpass
+#
+# 
+#
+# ======================================================================
+initpass () {
+    # Identify the key to use
+    # Really need a way to identify a specific key
+    keyVal=$(getgpgkey)
         pass init ${keyVal}
 }
+
+
 
 # ======================================================================
 #
@@ -258,21 +271,15 @@ initpass () {
 # ======================================================================
 genuserkeys () {
     # Generate GPG keys
-    keyVal=$(gpg -K |
-                 awk '/sec/{if (length($2) > 0) print $2}' |
-                 sed 's|.*/0x||' |
-                 head -n 1) &&
+    keyVal=$(getgpgkey) &&
         if [ ! -n $keyVal ]; then
             gpg --full-generate-key \
                 --expert &&
-                keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+                keyVal=$(getgpgkey) &&
                 gpg --edit-key --expert $keyVal
         fi
 
-    keyVal=$(gpg -K |
-                 awk '/sec/{if (length($2) > 0) print $2}' |
-                 sed 's|.*/0x||' |
-                 head -n 1)
+    keyVal=$(getgpgkey)
     if [ ! -f ${HOME}/.pgpkey ]; then
         gpg \
             --armor \
@@ -280,12 +287,9 @@ genuserkeys () {
     fi
 
     # Eport Authentication key
-    keyVal=$(gpg -K |
-                 awk '/\[A\]/{if (length($2) > 0) print $2}' |
-                 sed 's|.*/0x||' |
-                 head -n 1)
+    keyVal=$(getgpgkey)
 
-    user=$(echo ${HOME}| cut -d/ -f4)
+    user=$(echo ${HOME}| sed 's|.*/||')
     echo $user
     if [ ! -f ${HOME}/.ssh/${user}_gpg.pub ]; then
         gpg --armor \
@@ -302,7 +306,7 @@ genuserkeys () {
         for key in ${SSHKEYS}
         do
             # Add passwords for ssh keys
-            pass insert ${USER}/ssh/${key}
+            pass insert ${user}/ssh/${key}
         done
     fi
 
@@ -321,6 +325,7 @@ genuserkeys () {
                     OPTS="-b 4096"
                     ;;
             esac
+            OPTS="${OPTS} -N $(pass show ${user}/ssh/$key})"
             ssh-keygen -t ${key} \
                        -f ${HOME}/.ssh/id_${key} ${OPTS}
         fi
