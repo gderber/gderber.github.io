@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 
 # Package-Requires: ()
-# Last-Updated: Sun Jun  9 09:12:25 2019 (-0400)
+# Last-Updated: Sun Jun  9 09:52:08 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 59
+#     Update #: 60
 # URL: 
 # Doc URL: 
 # Keywords: 
@@ -166,7 +166,7 @@ installkeys () {
     fi
 
     if [ -n ${ORIGIN} ]; then
-        scp ${HOME}/.ssh/${username}.pub ${ruser}@${ORIGIN}:/tmp/
+        #scp ${HOME}/.ssh/${username}.pub ${ruser}@${ORIGIN}:/tmp/
 
         echo "When key upload complete, enter 'y' to continue."
         read input
