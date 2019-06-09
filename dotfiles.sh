@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 15:17:01 2019 (-0400)
+# Last-Updated: Sun Jun  9 15:56:01 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 151
+#     Update #: 159
 # URL:
 # Doc URL:
 # Keywords:
@@ -65,7 +65,6 @@ else
 fi
 useremail=${user}@${fqdn}
 username=${user}
-
 
 # ======================================================================
 #
@@ -205,27 +204,28 @@ exportkeys () {
 #
 # ======================================================================
 installkeys () {
-    local DN=$(dnsdomainname)
-    local GITFQDN=${GITHOST}.${DN}
-    unset ORIGIN
-    local ORIGIN
-    local ruser
+    #local DN=$(dnsdomainname)
+    #local GITFQDN=${GITHOST}.${DN}
+    #unset ORIGIN
+    #local ORIGIN
+    #local ruser
 
-    ruser=$(id -nu 1000)
+    #ruser=$(id -nu 1000)
 
-    if ping -c1 git > /dev/null; then
-        ORIGIN=git
-    elif ping -c1 ${GITFQDN} > /dev/null; then
-        ORIGIN=${GITFQDN}
-    fi
+    #if ping -c1 git > /dev/null; then
+    #    ORIGIN=git
+    #elif ping -c1 ${GITFQDN} > /dev/null; then
+    #    ORIGIN=${GITFQDN}
+    #fi
 
-    if [ -n ${ORIGIN} ]; then
+    #if [ -n ${ORIGIN} ]; then
         #scp ${HOME}/.ssh/${username}.pub ${ruser}@${ORIGIN}:/tmp/
 
-        echo "When key upload complete, enter 'y' to continue."
-        read input
-        sleep 100
-    fi
+    #    echo "When key upload complete, enter 'y' to continue."
+    #    read input
+    #    sleep 100
+    #fi
+    sleep 300
 }
 
 # ======================================================================
