@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 12:07:59 2019 (-0400)
+# Last-Updated: Sun Jun  9 12:10:51 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 127
+#     Update #: 128
 # URL:
 # Doc URL:
 # Keywords:
@@ -159,12 +159,15 @@ getkeys () {
 #
 # ======================================================================
 genkeys () {
+    echo "genkeys"
     keyVal=$(getkeys) &&
-    if [ ! -n $keyVal ]; then
+        if [ ! -n $keyVal ]; then
+            echo "Key doesn't exist"
         gpg --full-generate-key --expert &&
             keyVal=$(getkeys) &&
             gpg --edit-key --expert $keyVal
-    fi
+        fi
+    exit
 }
 
 # ======================================================================
