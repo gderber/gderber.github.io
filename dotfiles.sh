@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 13:56:59 2019 (-0400)
+# Last-Updated: Sun Jun  9 15:17:01 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 145
+#     Update #: 151
 # URL:
 # Doc URL:
 # Keywords:
@@ -164,13 +164,14 @@ getkeys () {
 # ======================================================================
 genkeys () {
     echo "genkeys"
-    keyVal=$(getkeys) &&
-        echo "keyVal: ${keyVal}" &&
-    if [ "${keyVal}" = "Fail" ]; then
-            echo "Key doesn't exist"
-            gpg --full-generate-key --expert &&
-                keyVal=$(getkeys) &&
-                gpg --edit-key --expert $keyVal
+    #keyVal=$(getkeys) &&
+    #    echo "keyVal: ${keyVal}" &&
+    if [ "${keyVal}" = "Fail" ] || [ -z ${keyVal} ]; then
+        echo "Key doesn't exist"
+        keyVal=$useremail
+        gpg --full-generate-key --expert &&
+            #keyVal=$(getkeys) &&
+            gpg --edit-key --expert $keyVal
     fi
 }
 
@@ -180,7 +181,8 @@ genkeys () {
 #
 # ======================================================================
 exportkeys () {
-    keyVal=$(getkeys)
+    keyVal=$useremail
+    #keyVal=$(getkeys)
 
     if [ -n ${keyVal} ]; then
         # Export gpg pubkey
@@ -281,18 +283,6 @@ setcrontab () {
 #
 # ======================================================================
 setgitconflocal () {
-    user=$(echo ${HOME}| sed 's|.*/||')
-    if [ ${UID} -lt 100000 ]; then
-        fqdn=$(hostname -f)
-        useremail=${user}@${fqdn}
-        username=${user}
-    else
-        fqdn=$(hostname -f|cut -d. -f3-)
-        useremail=${user}@${fqdn}
-        username=${user}
-
-    fi
-
     keyVal=$(getkeys)
 
     cat << GITCONFLOCAL > ${HOME}/.gitconfig.local
