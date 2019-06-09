@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 12:58:46 2019 (-0400)
+# Last-Updated: Sun Jun  9 13:19:07 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 141
+#     Update #: 143
 # URL:
 # Doc URL:
 # Keywords:
@@ -146,7 +146,7 @@ idghuser () {
 #
 # ======================================================================
 getkeys () {
-    if gpg -K $usermail > /dev/null; then
+    if gpg -K $usermail > /dev/null 2&>1; then
         keyVal=$(gpg -K $useremail |
                      awk '/sec/{if (length($2) > 0) print $2}' |
                      sed 's|.*/0x||' |
@@ -155,7 +155,6 @@ getkeys () {
         keyVal="Fail"
     fi
     echo "${keyVal}"
-    exit
 }
 
 # ======================================================================
