@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 
 # Package-Requires: ()
-# Last-Updated: Fri Sep  7 23:17:30 2018 (-0400)
+# Last-Updated: Sun Jun  9 08:39:40 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 7
+#     Update #: 35
 # URL: 
 # Doc URL: 
 # Keywords: 
@@ -48,9 +48,6 @@
 # ======================================================================
 # Code:
 
-
-
-
 SRCFILEDIR=${HOME}/.local/src
 DOTFILEDIR=${SRCFILEDIR}/dotfiles
 DOTFILESSH=$(command -v dotfiles.sh)
@@ -60,6 +57,19 @@ TODAY=$(date +%F)
 GITHOST=git
 GIT=$(command -v git)
 CLONE="${GIT} clone"
+
+user=$(echo ${HOME}| sed 's|.*/||')
+if [ ${UID} -lt 100000 ]; then
+    fqdn=$(hostname -f)
+    useremail=${user}@${fqdn}
+    username=${user}
+else
+    fqdn=$(hostname -f|cut -d. -f3-)
+    useremail=${user}@${fqdn}
+    username=${user}
+
+fi
+
 
 # ======================================================================
 #
@@ -97,6 +107,99 @@ idghuser () {
         echo "GHUID=${GHUSER}" > "${DOTFILESRC}"
     fi
 }
+
+# ======================================================================
+#
+# function genkeys
+#
+# ======================================================================
+genkeys () {
+    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+        if [ ! -n $keyVal ]; then
+            gpg --full-generate-key --expert &&
+                keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+                gpg --edit-key --expert $keyVal
+        fi
+}
+
+# ======================================================================
+#
+# function installkeys
+#
+# ======================================================================
+exportkeys () {
+    keyVal=$(gpg -K |
+                 awk '/sec/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 sort -u)
+
+    # Export gpg pubkey
+    # Using file 'finger' looks for
+    gpg --armor --export ${keyVal} > ${HOME}/.pubkey
+
+    mkdir -p ${HOME}/.ssh
+
+    gpg --export-ssh-key ${keyVal} > ${HOME}/.ssh/${username}.pub
+}
+
+# ======================================================================
+#
+# function installkeys
+#
+# ======================================================================
+installkeys () {
+    local DN=$(dnsdomainname)
+    local GITFQDN=${GITHOST}.${DN}
+    unset ORIGIN
+    local ORIGIN
+
+    if ping -c1 git > /dev/null; then
+        ORIGIN=git
+    elif ping -c1 ${GITFQDN} > /dev/null; then
+        ORIGIN=${GITFQDN}
+    fi
+}
+
+
+# ======================================================================
+#
+# setcrontab
+#
+# ...
+#
+#
+# ======================================================================
+setcrontab () {
+    if command -v nightly > /dev/null 2>&1 ; then
+        CRONCMD="$(command -v nightly)"
+
+        #Add to Crontab
+        CRONJOB="0 23 * * * ${CRONCMD}"
+        # Pipe contents of crontab to grep
+        # Grep removes cronjob if it exists
+        # Print crinjob
+        # Pipe alk of the above back to crontab
+        ( crontab -l | grep -v -F "${CRONCMD}" ; echo "${CRONJOB}" ) | crontab -
+    fi
+
+}
+
+# ======================================================================
+#
+# setgitconflocal
+#
+# ======================================================================
+setgitconflocal () {
+    keyVal=$(getgpgkey)
+    cat << GITCONFLOCAL > ${HOME}/.gitconfig.local
+[user]
+  email = ${useremail}
+  name = ${username}
+  signingkey = ${keyVal}
+GITCONFLOCAL
+
+}
+
 
 # ======================================================================
 #
@@ -152,45 +255,6 @@ download () {
 #
 #
 # ======================================================================
-selfinstall () {
-    BASEPREFIX=${1}
-    BINDIR="bin"
-    local PREFIX
-    unset SUDO
-    if [ $(sudo -v > /tmp/dotfilessh > /dev/null 2>&1) ]; then
-        PREFIX=${1:-"/usr/local/"}
-        SUDO="$(which sudo)"
-    elif [ -n "${BASEPREFIX}" ]; then
-        if [ -d "${BASEPREFIX}" ]; then
-            PREFIX="${BASEPREDIX}"
-        else
-            PREFIX="${HOME}/${BASEPREFIX}"
-        fi
-    else
-        PREFIX="${HOME}/.local"
-    fi
-    INSTDIR="${PREFIX}/${BINDIR}"
-
-    echo "INSTDIR: ${INSTDIR}"
-    echo ${PWD}
-
-    if [ ! -f ${PWD}/dotfiles.sh ]; then
-        if [ "${INSTDIR}" != "${PWD}" ]; then
-            if [ ! -f "${INSTDIR}/dotfiles.sh" ] ||
-                   [ "${TODAY}" != "${LASTUPDATE}" ]; then
-                mkdir -pv ${INSTDIR} &&
-                    ${SUDO} cp ${DOTFILESSHDIR}/dotfiles.sh ${INSTDIR} &&
-                    chmod 755 ${INSTDIR}/dotfiles.sh
-            fi
-        fi
-    fi
-}
-
-# ======================================================================
-#
-#
-#
-# ======================================================================
 install () {
     cd ${DOTFILEDIR} &&
         make install
@@ -239,21 +303,10 @@ else
     idghuser
 fi
 
-download &&
+genkeys &&
+    download &&
     install &&
-    if [ -f ${PWD}/dotfiles.sh ]; then
-        selfinstall ${PREFIX} &&
-            echo "..."
-    fi
-if [ -f ${DOTFILESRC} ]; then
-    if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
-        sed -i 's/LASTUPDATE=.*/LASTUPDATE='$(date +%F)'/g' "${DOTFILESRC}"
-    else
-        echo "LASTUPDATE=$(date +%F)" >> "${DOTFILESRC}"
-    fi
-else
-    echo "LASTUPDATE=$(date +%F)" > "${DOTFILESRC}"
-fi
-
+    setcrontab &&
+    setgitconflocal
 #
 # dotfiles.sh ends here
