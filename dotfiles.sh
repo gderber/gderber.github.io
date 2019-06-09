@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 10:24:01 2019 (-0400)
+# Last-Updated: Sun Jun  9 10:38:27 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 115
+#     Update #: 117
 # URL:
 # Doc URL:
 # Keywords:
@@ -162,7 +162,7 @@ getkeys () {
 #
 # ======================================================================
 genkeys () {
-    keyVal=$(getkeys)
+    keyVal=$(getkeys) &&
     if [ ! -n $keyVal ]; then
         gpg --full-generate-key --expert &&
             keyVal=$(getkeys) &&
@@ -216,6 +216,7 @@ installkeys () {
 
         echo "When key upload complete, enter 'y' to continue."
         read input
+        sleep 100
     fi
 }
 
