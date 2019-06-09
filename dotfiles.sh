@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 10:01:47 2019 (-0400)
+# Last-Updated: Sun Jun  9 10:19:47 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 100
+#     Update #: 113
 # URL:
 # Doc URL:
 # Keywords:
@@ -142,16 +142,30 @@ idghuser () {
     fi
 }
 
+
+# ======================================================================
+#
+# function getkeys
+#
+# ======================================================================
+getkeys () {
+    keyVal=$(gpg -K |
+                 awk '/sec/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 sort -u) &&
+        echo "${keyVal}"
+}
+
 # ======================================================================
 #
 # function genkeys
 #
 # ======================================================================
 genkeys () {
-    keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+
         if [ ! -n $keyVal ]; then
             gpg --full-generate-key --expert &&
-                keyVal=$(gpg -K | awk '/sec/{if (length($2) > 0) print $2}'|sed 's|.*/0x||' ) &&
+                keyVal=$(getkeys) &&
                 gpg --edit-key --expert $keyVal
         fi
 }
@@ -162,19 +176,18 @@ genkeys () {
 #
 # ======================================================================
 exportkeys () {
-    keyVal=$(gpg -K |
-                 awk '/sec/{if (length($2) > 0) print $2}' |
-                 sed 's|.*/0x||' |
-                 sort -u)
+    keyVal=$(getkeys)
 
-    # Export gpg pubkey
-    # Using file 'finger' looks for
-    if [ ! -f ${HOME}/.pubkey ]; then
-        gpg --armor --export ${keyVal} > ${HOME}/.pubkey
-    fi
-    if [ ! -f ${HOME}/.ssh/${username}.pub ]; then
-        mkdir -p ${HOME}/.ssh
-        gpg --export-ssh-key ${keyVal} > ${HOME}/.ssh/${username}.pub
+    if [ -n ${keyVal} ]; then
+        # Export gpg pubkey
+        # Using file 'finger' looks for
+        if [ ! -f ${HOME}/.pubkey ]; then
+            gpg --armor --export ${keyVal} > ${HOME}/.pubkey
+        fi
+        if [ ! -f ${HOME}/.ssh/${username}.pub ]; then
+            mkdir -p ${HOME}/.ssh
+            gpg --export-ssh-key ${keyVal} > ${HOME}/.ssh/${username}.pub
+        fi
     fi
 }
 
@@ -247,10 +260,7 @@ setgitconflocal () {
 
     fi
 
-    keyVal=$(gpg -K |
-                 awk '/sec/{if (length($2) > 0) print $2}' |
-                 sed 's|.*/0x||' |
-                 sort -u)
+    keyVal=$(getkeys)
 
     cat << GITCONFLOCAL > ${HOME}/.gitconfig.local
 [user]
@@ -330,98 +340,12 @@ install () {
 # 
 #
 # ======================================================================
-getgpgkey () {
-    keyVal=$(gpg -K |
-                 awk '/sec/{if (length($2) > 0) print $2}' |
-                 sed 's|.*/0x||' |
-                 head -n 1) &&
-        echo "$keyVal"
-}
-
-# ======================================================================
-#
-# initpass
-#
-# 
-#
-# ======================================================================
 initpass () {
     # Identify the key to use
     # Really need a way to identify a specific key
-    keyVal=$(getgpgkey)
+    keyVal=$(getkeys)
         pass init ${keyVal}
 }
-
-
-
-# ======================================================================
-#
-# genuserkeys
-#
-# ======================================================================
-genuserkeys () {
-    # Generate GPG keys
-    keyVal=$(getgpgkey) &&
-        if [ ! -n $keyVal ]; then
-            gpg --full-generate-key \
-                --expert &&
-                keyVal=$(getgpgkey) &&
-                gpg --edit-key --expert $keyVal
-        fi
-
-    keyVal=$(getgpgkey)
-    if [ ! -f ${HOME}/.pgpkey ]; then
-        gpg \
-            --armor \
-            --export ${keyal} > ${HOME}/.pgpkey
-    fi
-
-    # Eport Authentication key
-    keyVal=$(getgpgkey)
-
-    user=$(echo ${HOME}| sed 's|.*/||')
-    echo $user
-    if [ ! -f ${HOME}/.ssh/${user}_gpg.pub ]; then
-        gpg --armor \
-            --export-ssh-key \
-            --output ${HOME}/.ssh/${user}_gpg.pub \
-            ${keyVal}
-
-    fi
-
-    SSHKEYS="ed25519 rsa"
-    # Check if password-store is setup
-    if [ ! -d ${HOME}/.password-store ]; then
-        initpass &&
-        for key in ${SSHKEYS}
-        do
-            # Add passwords for ssh keys
-            pass insert ${user}/ssh/${key}
-        done
-    fi
-
-    # Generate SSH Keys
-    # ed25519 is primary
-    # rsa is for applications/sites that don't support ed25519
-    for key in ${SSHKEYS}
-    do
-        # If the key doesn't exist, generate it
-        if [ ! -f ~/.ssh/id_${key} ]; then
-            case $key in
-                ed25518)
-                    OPTS=""
-                    ;;
-                rsa)
-                    OPTS="-b 4096"
-                    ;;
-            esac
-            OPTS="${OPTS} -N $(pass show ${user}/ssh/${key})"
-            ssh-keygen -t ${key} \
-                       -f ${HOME}/.ssh/id_${key} ${OPTS}
-        fi
-    done
-}
-
 
 # ======================================================================
 #
@@ -493,7 +417,8 @@ genkeys &&
     download &&
     install &&
     setcrontab &&
-    setgitconflocal
+    setgitconflocal &&
+    initpass
 
 if [ -f ${DOTFILESRC} ]; then
     if $(grep -q LASTUPDATE ${DOTFILESRC}) ; then
