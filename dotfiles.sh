@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 
 # Package-Requires: ()
-# Last-Updated: Sun Jun  9 08:39:40 2019 (-0400)
+# Last-Updated: Sun Jun  9 08:42:47 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 35
+#     Update #: 37
 # URL: 
 # Doc URL: 
 # Keywords: 
@@ -135,11 +135,13 @@ exportkeys () {
 
     # Export gpg pubkey
     # Using file 'finger' looks for
-    gpg --armor --export ${keyVal} > ${HOME}/.pubkey
-
-    mkdir -p ${HOME}/.ssh
-
-    gpg --export-ssh-key ${keyVal} > ${HOME}/.ssh/${username}.pub
+    if [ ! -f ${HOME}/.pubkey ]; then
+        gpg --armor --export ${keyVal} > ${HOME}/.pubkey
+    fi
+    if [ ! -f ${HOME}/.ssh/${username}.pub ]; then
+        mkdir -p ${HOME}/.ssh
+        gpg --export-ssh-key ${keyVal} > ${HOME}/.ssh/${username}.pub
+    fi
 }
 
 # ======================================================================
@@ -304,6 +306,7 @@ else
 fi
 
 genkeys &&
+    exportkeys &&
     download &&
     install &&
     setcrontab &&
