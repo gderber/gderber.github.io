@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 
 # Package-Requires: ()
-# Last-Updated: Sun Jun  9 08:42:47 2019 (-0400)
+# Last-Updated: Sun Jun  9 09:12:25 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 37
+#     Update #: 59
 # URL: 
 # Doc URL: 
 # Keywords: 
@@ -57,9 +57,10 @@ TODAY=$(date +%F)
 GITHOST=git
 GIT=$(command -v git)
 CLONE="${GIT} clone"
+userid=$(id -u)
 
 user=$(echo ${HOME}| sed 's|.*/||')
-if [ ${UID} -lt 100000 ]; then
+if [ ${userid} -lt 100000 ]; then
     fqdn=$(hostname -f)
     useremail=${user}@${fqdn}
     username=${user}
@@ -154,14 +155,23 @@ installkeys () {
     local GITFQDN=${GITHOST}.${DN}
     unset ORIGIN
     local ORIGIN
+    local ruser
+
+    ruser=$(id -nu 1000)
 
     if ping -c1 git > /dev/null; then
         ORIGIN=git
     elif ping -c1 ${GITFQDN} > /dev/null; then
         ORIGIN=${GITFQDN}
     fi
-}
 
+    if [ -n ${ORIGIN} ]; then
+        scp ${HOME}/.ssh/${username}.pub ${ruser}@${ORIGIN}:/tmp/
+
+        echo "When key upload complete, enter 'y' to continue."
+        read input
+    fi
+}
 
 # ======================================================================
 #
@@ -192,7 +202,23 @@ setcrontab () {
 #
 # ======================================================================
 setgitconflocal () {
-    keyVal=$(getgpgkey)
+    user=$(echo ${HOME}| sed 's|.*/||')
+    if [ ${UID} -lt 100000 ]; then
+        fqdn=$(hostname -f)
+        useremail=${user}@${fqdn}
+        username=${user}
+    else
+        fqdn=$(hostname -f|cut -d. -f3-)
+        useremail=${user}@${fqdn}
+        username=${user}
+
+    fi
+
+    keyVal=$(gpg -K |
+                 awk '/sec/{if (length($2) > 0) print $2}' |
+                 sed 's|.*/0x||' |
+                 sort -u)
+
     cat << GITCONFLOCAL > ${HOME}/.gitconfig.local
 [user]
   email = ${useremail}
@@ -307,6 +333,7 @@ fi
 
 genkeys &&
     exportkeys &&
+    installkeys &&
     download &&
     install &&
     setcrontab &&
