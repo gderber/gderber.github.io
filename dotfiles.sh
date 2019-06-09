@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 11:53:29 2019 (-0400)
+# Last-Updated: Sun Jun  9 12:07:59 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 119
+#     Update #: 127
 # URL:
 # Doc URL:
 # Keywords:
@@ -181,6 +181,8 @@ exportkeys () {
         if [ ! -f ${HOME}/.pubkey ]; then
             gpg --armor --export ${keyVal} > ${HOME}/.pubkey
         fi
+
+        # TODO: Check if key file size is greater than 0
         if [ ! -f ${HOME}/.ssh/${username}.pub ]; then
             mkdir -p ${HOME}/.ssh
             gpg --export-ssh-key ${keyVal} > ${HOME}/.ssh/${username}.pub
@@ -216,6 +218,32 @@ installkeys () {
         sleep 100
     fi
 }
+
+# ======================================================================
+#
+# startagents
+#
+# ======================================================================
+startagents () {
+    local keyVal
+    if command -v keychain > /dev/null 2>&1; then
+        # ID GPG Keys
+        keyVal=$(getkeys) &&
+            if [ -n ${keyVal} ]; then
+                if [ ! ${TERM} =~ screen ]; then
+                    eval "$(keychain --clear --systemd --eval --agents gpg ${keyVal})"
+                else
+                    eval "$(keychain --eval --agents gpg ${keyVal})"
+                fi
+            fi
+        export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+        gpgconf --launch gpg-agent
+
+        export GPG_TTY=$(tty)
+        gpg-connect-agent updatestartuptty /bye >/dev/null
+    fi
+}
+
 
 # ======================================================================
 #
@@ -412,6 +440,7 @@ fi
 genkeys &&
     exportkeys &&
     installkeys &&
+    startagents &&
     download &&
     install &&
     setcrontab &&
