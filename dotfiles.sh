@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 12:21:12 2019 (-0400)
+# Last-Updated: Sun Jun  9 12:23:51 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 132
+#     Update #: 135
 # URL:
 # Doc URL:
 # Keywords:
@@ -152,7 +152,7 @@ getkeys () {
                      sed 's|.*/0x||' |
                      sort -u)
     else
-        keyVal=""
+        keyVal="Fail"
     fi
     echo "${keyVal}"
 }
@@ -165,7 +165,8 @@ getkeys () {
 genkeys () {
     echo "genkeys"
     keyVal=$(getkeys) &&
-        if [ ! -n $keyVal ]; then
+        echo $keyVal &&
+        if [ "$keyVal" != "Fail" ]; then
             echo "Key doesn't exist"
         gpg --full-generate-key --expert &&
             keyVal=$(getkeys) &&
