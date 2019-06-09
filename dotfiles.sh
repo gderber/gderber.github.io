@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 12:10:51 2019 (-0400)
+# Last-Updated: Sun Jun  9 12:17:10 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 128
+#     Update #: 131
 # URL:
 # Doc URL:
 # Keywords:
@@ -149,7 +149,7 @@ getkeys () {
     keyVal=$(gpg -K $useremail |
                  awk '/sec/{if (length($2) > 0) print $2}' |
                  sed 's|.*/0x||' |
-                 sort -u) &&
+                 sort -u) || keyVal=""
         echo "${keyVal}"
 }
 
