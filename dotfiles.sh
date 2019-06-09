@@ -10,9 +10,9 @@
 # Created: Fri Sep  7 15:58:44 2018 (-0400)
 # Version: 0.1
 # Package-Requires: (git make keychain pass)
-# Last-Updated: Sun Jun  9 10:38:27 2019 (-0400)
+# Last-Updated: Sun Jun  9 11:53:29 2019 (-0400)
 #           By: Geoff S Derber
-#     Update #: 117
+#     Update #: 119
 # URL:
 # Doc URL:
 # Keywords:
@@ -60,14 +60,11 @@ userid=$(id -u)
 user=$(echo ${HOME}| sed 's|.*/||')
 if [ ${userid} -lt 100000 ]; then
     fqdn=$(hostname -f)
-    useremail=${user}@${fqdn}
-    username=${user}
 else
     fqdn=$(hostname -f|cut -d. -f3-)
-    useremail=${user}@${fqdn}
-    username=${user}
-
 fi
+useremail=${user}@${fqdn}
+username=${user}
 
 
 # ======================================================================
@@ -149,7 +146,7 @@ idghuser () {
 #
 # ======================================================================
 getkeys () {
-    keyVal=$(gpg -K |
+    keyVal=$(gpg -K $useremail |
                  awk '/sec/{if (length($2) > 0) print $2}' |
                  sed 's|.*/0x||' |
                  sort -u) &&
